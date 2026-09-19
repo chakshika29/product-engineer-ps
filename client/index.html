@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resumable Realtime Conversation | Caygnus Challenge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-badge">⚡ Caygnus Challenge</div>
+        <h1 class="header-title">Resumable Realtime Conversation</h1>
+      </div>
+      <div class="header-right">
+        <div id="connection-badge" class="badge badge-disconnected">
+          <span class="badge-dot"></span>
+          <span id="connection-status-text">DISCONNECTED</span>
+        </div>
+        <div class="candidate-pill">Candidate: <strong>Chakshika Pawar</strong></div>
+      </div>
+    </header>
+
+    <!-- Metrics Bar -->
+    <div class="metrics-bar">
+      <div class="metric-card">
+        <span class="metric-label">RUN STATUS</span>
+        <span id="metric-run-status" class="metric-value status-idle">IDLE</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">CLIENT CURSOR (SEQ)</span>
+        <span id="metric-cursor" class="metric-value">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">EVENTS RECEIVED</span>
+        <span id="metric-events" class="metric-value">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">DUPLICATES FILTERED</span>
+        <span id="metric-duplicates" class="metric-value text-success">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">GAPS DETECTED</span>
+        <span id="metric-gaps" class="metric-value text-success">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">ACTIVE RUN ID</span>
+        <span id="metric-run-id" class="metric-value font-mono">none</span>
+      </div>
+    </div>
+
+    <!-- Chaos Testing Toolbar -->
+    <div class="chaos-toolbar">
+      <span class="toolbar-title">Resilience & Recovery Controls:</span>
+      <button id="btn-drop-network" class="btn btn-warning" title="Closes SSE stream and reconnects with cursor after 2.5s">
+        ⚡ Drop Connection (2.5s)
+      </button>
+      <button id="btn-reconnect" class="btn btn-secondary" title="Immediately reconnects using highest seen cursor">
+        🔄 Reconnect with Cursor
+      </button>
+      <button id="btn-fail-generator" class="btn btn-danger" title="Starts a run that fails deliberately midway (AC5)">
+        💥 Inject Generator Error (AC5)
+      </button>
+      <button id="btn-stale-cursor" class="btn btn-warning" title="Requests an invalid cursor beyond range (AC6)">
+        ⚠️ Stale Cursor (AC6)
+      </button>
+      <button id="btn-run-benchmark" class="btn btn-primary" title="Runs the 36-token benchmark in the UI">
+        🚀 Run Benchmark Live
+      </button>
+      <button id="btn-inspect-db" class="btn btn-ghost" title="Inspect raw SQLite event records">
+        📊 Inspect SQLite Log
+      </button>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Chat Pane -->
+      <section class="chat-section">
+        <div class="section-header">
+          <h2>Conversation Stream</h2>
+          <span id="stream-phase-indicator" class="phase-tag">Ready</span>
+        </div>
+        <div id="chat-messages" class="messages-container">
+          <div class="system-message">
+            <div class="system-bubble">
+              👋 <strong>System Ready</strong>. Type a message or click <em>Run Benchmark Live</em> to stream tokens in realtime with automatic cursor resumption and deduplication.
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <form id="chat-form" class="chat-input-bar">
+          <input 
+            type="text" 
+            id="message-input" 
+            placeholder="Type your prompt (or select a preset)..." 
+            autocomplete="off"
+            required
+          />
+          <button type="submit" id="btn-send" class="btn btn-primary">
+            Stream Response
+          </button>
+        </form>
+      </section>
+
+      <!-- Protocol Event Log Pane -->
+      <aside class="log-section">
+        <div class="section-header">
+          <h2>Durable Event Inspector</h2>
+          <button id="btn-clear-logs" class="btn-sm btn-ghost">Clear Log</button>
+        </div>
+        <div id="protocol-logs" class="protocol-logs">
+          <div class="log-entry log-info">
+            <span class="log-time">[System]</span>
+            <span class="log-msg">Client state initialized. Ready for stream.</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Modal for SQLite Inspector -->
+    <div id="db-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>SQLite Event Store Inspector</h3>
+          <button id="btn-close-modal" class="btn-close">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body">
+          <pre id="db-json-view">Loading SQLite records...</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

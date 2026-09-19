@@ -1,0 +1,21 @@
+{
+  "name": "resumable-realtime-conversation",
+  "version": "1.0.0",
+  "description": "Caygnus Product Engineering Challenge - Problem 1: Resumable Realtime Conversation",
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-sqlite server/index.mjs",
+    "test": "node --experimental-sqlite --test tests/*.test.mjs",
+    "benchmark": "node --experimental-sqlite tests/benchmark.mjs"
+  },
+  "keywords": [
+    "realtime",
+    "sse",
+    "resumable",
+    "conversation",
+    "sqlite",
+    "streaming"
+  ],
+  "author": "Chakshika Pawar <chakshikapawar@gmail.com>",
+  "license": "MIT"
+}
