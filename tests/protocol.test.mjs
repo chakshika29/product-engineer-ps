@@ -13,9 +13,16 @@ function parseSSEChunk(rawChunk) {
     let event = null;
     let data = null;
     for (const line of lines) {
-      if (line.startsWith('id: ')) id = parseInt(line.slice(4), 10);
-      else if (line.startsWith('event: ')) event = line.slice(7);
-      else if (line.startsWith('data: ')) data = JSON.parse(line.slice(6));
+      const cleanLine = line.replace(/\r$/, '');
+      if (cleanLine.startsWith('id: ')) id = parseInt(cleanLine.slice(4).trim(), 10);
+      else if (cleanLine.startsWith('event: ')) event = cleanLine.slice(7).trim();
+      else if (cleanLine.startsWith('data: ')) {
+        try {
+          data = JSON.parse(cleanLine.slice(6));
+        } catch (e) {
+          data = cleanLine.slice(6);
+        }
+      }
     }
     if (event && data) {
       events.push({ id, event, data });
@@ -45,14 +52,14 @@ function fetchJson(url, options = {}) {
   });
 }
 
-function listenSSE(url, { onEvent, stopAtSeq = null, cursor = null }) {
+function listenSSE(url, { onEvent, stopAtSeq = null, cursor = null, headers = {} } = {}) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     if (cursor !== null && cursor !== undefined) {
       parsedUrl.searchParams.set('cursor', cursor);
     }
 
-    const req = http.request(parsedUrl, (res) => {
+    const req = http.request(parsedUrl, { headers }, (res) => {
       if (res.statusCode !== 200) {
         let errBody = '';
         res.on('data', c => errBody += c);
@@ -314,5 +321,65 @@ test('Protocol and State Machine Verification Suite', async (t) => {
     const negRes = await fetchJson(`${baseUrl}/api/conversations/${convId}/runs/${runId}/stream?cursor=-5`);
     assert.equal(negRes.status, 400);
     assert.equal(negRes.body.error, 'INVALID_CURSOR');
+  });
+
+  await t.test('Header support: Reconnecting using Last-Event-ID header replays correctly without duplicates', async () => {
+    const convId = 'conv_last_event_id';
+    const runRes = await fetchJson(`${baseUrl}/api/conversations/${convId}/runs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        words: ['Token1', 'Token2', 'Token3', 'Token4', 'Token5'],
+        token_delay_ms: 10
+      }
+    });
+    const runId = runRes.body.run_id;
+
+    // Disconnect after seq 2
+    const firstClient = await listenSSE(`${baseUrl}/api/conversations/${convId}/runs/${runId}/stream`, {
+      stopAtSeq: 2
+    });
+    assert.equal(firstClient.events.length, 2);
+
+    // Wait for generator to finish
+    await new Promise(r => setTimeout(r, 100));
+
+    // Reconnect with HTTP Last-Event-ID header: '2'
+    const secondClient = await listenSSE(`${baseUrl}/api/conversations/${convId}/runs/${runId}/stream`, {
+      headers: { 'Last-Event-ID': '2' }
+    });
+
+    assert.equal(secondClient.completed || secondClient.closed, true);
+    // Should receive seqs 3, 4, 5, 6 (run_completed)
+    assert.deepEqual(secondClient.events.map(e => e.id), [3, 4, 5, 6]);
+
+    // Combined stream has zero duplicates and zero gaps
+    const combined = [...firstClient.events, ...secondClient.events];
+    assert.deepEqual(combined.map(e => e.id), [1, 2, 3, 4, 5, 6]);
+  });
+
+  await t.test('Terminal cursor: Connecting with cursor equal to latest terminal sequence closes cleanly with 0 duplicate events', async () => {
+    const convId = 'conv_terminal_cursor';
+    const runRes = await fetchJson(`${baseUrl}/api/conversations/${convId}/runs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        words: ['A', 'B'],
+        token_delay_ms: 5
+      }
+    });
+    const runId = runRes.body.run_id;
+
+    // Wait for completion (events 1, 2, 3:run_completed)
+    await new Promise(r => setTimeout(r, 50));
+
+    // Client already has all events up to terminal seq 3.
+    // Connects with cursor=3
+    const streamResult = await listenSSE(`${baseUrl}/api/conversations/${convId}/runs/${runId}/stream`, {
+      cursor: 3
+    });
+
+    assert.equal(streamResult.closed || streamResult.completed, true);
+    assert.equal(streamResult.events.length, 0); // zero duplicate events delivered
   });
 });

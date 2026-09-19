@@ -60,10 +60,36 @@ The service will start on port `3000`:
 
 ## Run the tests
 
-Run the complete automated test suite covering all acceptance criteria (AC1, AC2, AC3, AC4, AC5, AC6):
+Run the complete automated test suite covering all acceptance criteria (AC1, AC2, AC3, AC4, AC5, AC6) and transport edge cases:
 
 ```bash
 npm test
+```
+
+Observed test output:
+```text
+> resumable-realtime-conversation@1.0.0 test
+> node --experimental-sqlite --test tests/*.test.mjs
+
+▶ Protocol and State Machine Verification Suite
+  ✔ AC1: Ordered live stream delivers events once in monotonic order to completion (138ms)
+  ✔ AC2: Missed-event recovery replays exactly from cursor without gaps or duplicates (219ms)
+  ✔ AC3: Replay and live stream overlap is merged deterministically with 0 duplicates (652ms)
+  ✔ AC5: Generator failure transitions run to failed, preserves history, and never completes (64ms)
+  ✔ AC6: Unknown or stale cursor returns an explicit recoverable error response (78ms)
+  ✔ Header support: Reconnecting using Last-Event-ID header replays correctly without duplicates (127ms)
+  ✔ Terminal cursor: Connecting with cursor equal to latest terminal sequence closes cleanly with 0 duplicate events (63ms)
+✔ Protocol and State Machine Verification Suite (1353ms)
+
+▶ AC4: Service Restart and Crash Recovery Suite
+  ✔ Interrupted run during service crash is reconciled on startup and resumable from cursor (331ms)
+  ✔ Completed run survives service restart and can be fully replayed (84ms)
+✔ AC4: Service Restart and Crash Recovery Suite (418ms)
+
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
 ```
 
 ### Problem-Specific Verification Benchmark

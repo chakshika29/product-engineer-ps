@@ -190,13 +190,15 @@ export function createServer({
         // AC6: Unknown or stale cursor handling
         const bounds = db.getEventBounds(runId);
         const isCursorInvalid = isNaN(cursor) || cursor < 0;
-        const isCursorBeyondKnown = bounds.total_events > 0 && cursor > bounds.latest_seq;
+        const isCursorBeyondKnown = cursor > bounds.latest_seq;
+        const isCursorExpired = bounds.earliest_seq > 1 && cursor < bounds.earliest_seq - 1;
 
-        if (isCursorInvalid || isCursorBeyondKnown) {
+        if (isCursorInvalid || isCursorBeyondKnown || isCursorExpired) {
           // Explicit recoverable error response
+          const reason = isCursorExpired ? 'CURSOR_EXPIRED' : 'INVALID_CURSOR';
           return sendJson(res, 400, {
-            error: 'INVALID_CURSOR',
-            message: `Requested cursor (${rawCursor}) is invalid or out of available event bounds`,
+            error: reason,
+            message: `Requested cursor (${rawCursor}) is invalid, expired, or out of available event bounds`,
             requested_cursor: rawCursor,
             earliest_seq: bounds.earliest_seq,
             latest_seq: bounds.latest_seq,

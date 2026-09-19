@@ -66,6 +66,8 @@ class RealtimeChatClient {
       if (this.activeRunId) {
         this.log('reconnect', `Manual reconnect requested with cursor=${this.clientCursor}`);
         this.connectStream(this.activeRunId, this.clientCursor);
+      } else {
+        alert('Please start a turn or click "Run Benchmark Live" first before reconnecting.');
       }
     });
 
@@ -324,13 +326,16 @@ class RealtimeChatClient {
     let data = null;
 
     for (const line of lines) {
-      if (line.startsWith('id: ')) id = parseInt(line.slice(4), 10);
-      else if (line.startsWith('event: ')) eventType = line.slice(7);
-      else if (line.startsWith('data: ')) {
+      const cleanLine = line.replace(/\r$/, '');
+      if (cleanLine.startsWith('id: ')) {
+        id = parseInt(cleanLine.slice(4).trim(), 10);
+      } else if (cleanLine.startsWith('event: ')) {
+        eventType = cleanLine.slice(7).trim();
+      } else if (cleanLine.startsWith('data: ')) {
         try {
-          data = JSON.parse(line.slice(6));
+          data = JSON.parse(cleanLine.slice(6));
         } catch (e) {
-          data = line.slice(6);
+          data = cleanLine.slice(6);
         }
       }
     }
@@ -418,13 +423,16 @@ class RealtimeChatClient {
       return;
     }
 
+    clearTimeout(this.reconnectTimer);
+    clearTimeout(this.networkDropTimer);
+
     this.log('warning', `⚡ Simulating abrupt network failure for ${durationMs}ms... (cursor checkpoint: ${this.clientCursor})`);
     this.isDeliberateDisconnect = true;
     this.abortController.abort();
     this.updateConnectionState('DISCONNECTED');
     this.elPhaseTag.textContent = 'Network Disconnected';
 
-    setTimeout(() => {
+    this.networkDropTimer = setTimeout(() => {
       this.log('reconnect', `Network restored. Resuming stream from checkpoint cursor=${this.clientCursor}...`);
       this.connectStream(this.activeRunId, this.clientCursor);
     }, durationMs);

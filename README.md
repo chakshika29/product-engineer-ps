@@ -1,6 +1,8 @@
 # Caygnus Product Engineering Challenge
 
-> **Before you begin:** Read this README and your selected problem brief completely before starting. If anything is unclear, contact us using whichever option you prefer: [hr@caygnus.com](mailto:hr@caygnus.com) or [Omkar Sonawane on LinkedIn](https://www.linkedin.com/in/omkar-sonawane-ss/).
+> **Candidate:** Chakshika Pawar ([@chakshika29](https://github.com/chakshika29) / [chakshikapawar@gmail.com](mailto:chakshikapawar@gmail.com))  
+> **Selected Problem:** [Problem 1: Resumable Realtime Conversation](problems/01-resumable-realtime-conversation/README.md)  
+> **Complete Submission Document:** [SUBMISSION.md](SUBMISSION.md) | **Quick Start:** `npm start` | **Tests:** `npm test`
 
 We are hiring a **Product Engineer / Full-Stack Developer** to build and ship products in the AI space at Caygnus. The role is available in a **remote or hybrid** working arrangement.
 
